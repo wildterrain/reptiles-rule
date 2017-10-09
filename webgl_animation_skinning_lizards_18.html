@@ -1,0 +1,1623 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>Reptiles Rule!</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				font-family: Monospace;
+				background-color: #000000;
+				margin: 0px;
+				overflow: hidden;
+			}
+
+			#info {
+				color: #fff;
+				position: absolute;
+				top: 10px;
+				width: 100%;
+				text-align: center;
+				z-index: 100;
+				display:block;
+			}
+
+			a { color: skyblue }
+			
+		</style>
+
+		<!-- marty - display list of keyboard shortcuts in a semi-transparent div adapted from http://skeelogy.github.io/skunami.js/examples/skunami_twoWayCoupling.html  -->
+		
+		<link href='http://fonts.googleapis.com/css?family=Fauna+One' rel='stylesheet' type='text/css'>
+		<link rel="stylesheet" href="css/style.css">
+
+
+<!-- the following style_no_stats.css combines with the toggle display for twisters by OutsideofSociety http://oos.moxiecode.com/js_webgl/twisters/index.html
+		<link rel="stylesheet" type="text/css" href="css/style_no_stats.css">
+-->
+
+	</head>
+	<body>
+
+<!-- the following code adapted from http://oos.moxiecode.com/js_webgl/twisters/index.html toggles the info display - but it wipes out the dat.gui and stats controls :(
+		<div id="infobutton">
+			<a href="javascript:toggleInfo()"><img src="images/info.png" border="0"></a>
+		</div>
+		<div id="info">
+				<B>Twisters - WebGL(html5)</B>
+				<P>Twisting tubes test. A classic demo/intro effect, I believe.</P>
+				Done using <a href="https://github.com/mrdoob/three.js" target="_blank">three.js</a>.
+				<P><B>Note.</B> You need a modern browser that supports WebGL for this to run the way it is intended.<BR>
+				For example. <a href="http://www.google.com/landing/chrome/beta/" target="_blank">Google Chrome 9+</a> or <a href="http://www.mozilla.com/firefox/beta/" target="_blank">Firefox 4+</a>.</P>
+				<font color="#777777">(C) OutsideOfSociety 2011.
+		</div>
+ -->
+
+
+		<!-- marty - display list of keyboard shortcuts in a semi-transparent div, adapted from http://skeelogy.github.io/skunami.js/examples/skunami_twoWayCoupling.html   -->
+
+		<div id="threejs-container"></div>
+		<div class="translucent" id="info-container">
+			<div>[ Mouse Wheel ]			: Zoom view </div>
+			<div>[ W,A,S,D, ARROW keys ]	: Pan view</div>
+			<div>[ C ]						: Centre view</div>
+			<div>[ F ]						: Fullscreen view toggle</div>
+			<div>[ p ]						: Capture screenshot as PNG image</div>
+			<div>[ 0 - 9 ]					: Track individual models</div>
+			<div>[ T ]						: Topview tracking</div>
+			<div>[ SHIFT ]					: Sideview tracking</div>
+			<div>[ CONTROL ]				: Model-Cam (zoom in for best view) </div>
+			<div>[ H ]						: Hide / Show Control Panel</div>
+			<div> </div>
+			<div>Credits...</div>
+			<div>three.js Coding by Marty Dillon & Gargi Maheshwari</div>
+			<div>Blender 3D Lizard models by Fajar Juliandri Supit & Sri M </div>
+		</div>
+
+
+		<script src="build/three.min.js"></script>
+		
+		<!--
+		<script src="../build/three.min.js"></script>
+
+		<script src="js/loaders/ColladaLoader.js"></script>
+		-->
+		
+
+		<script src="js/Detector.js"></script>
+		<script src="js/libs/stats.min.js"></script>
+		<script src="js/controls/OrbitControls.js"></script>
+		<script src="js/controls/TrackballControls.js"></script>
+		<script src="js/THREEx.KeyboardState.js"></script>
+		<script src="js/THREEx.screenshot.js"></script>
+		<script src="js/THREEx.FullScreen.js"></script>
+		<script src="js/info3.js"></script>
+		
+
+		<script type="text/javascript" src="js/dat.gui.min.js"></script>
+		
+		
+		<script>
+		
+			if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
+			
+			// Jacky Dragon
+			//marty. Directory path and filename of the the JSON file storing the 3D model
+			var Model1_JSON_file = "models/buffalo/JackyDragon_ArmatureModRemoved_LocRotScaleReset_GreenVoroni.js";
+			//marty. The Animation title name specified within the model's JSON file (defined within Blender).
+			var Model1_Animation_title = "Armature.001Action";
+			
+			// Spotted Gecko
+			var Model2_JSON_file = "models/buffalo/SpottedGecko_FlipYZ_brown_animation.js";
+			var Model2_Animation_title = "Armature.001Action.002";
+			
+			// Water Skink
+			var Model3_JSON_file = "models/buffalo/WaterSkink__FlipYZ_bronze.js";
+			var Model3_Animation_title = "Armature.001Action.001";
+			
+			// Sand Goanna
+			var Model4_JSON_file = "models/buffalo/SandGoanna_Armature_Modifier_Removed_LocRotScaleReset_AnimNoBraces.js";
+			var Model4_Animation_title = "ArmatureAction.001";
+			
+			// Gumby lizard
+			//var Model1_JSON_file = "models/buffalo/Marty_generic_lizard_3b_armiture_modifier_removed.js";
+			//var Model1_Animation_title = "ArmatureAction";
+			
+			
+			// Just for reference here are the animation titles for the various models...
+			// Gumby Lizard: "ArmatureAction"
+			// Spotted Gecko: "Armature.001Action.002"
+			// Water Skink: "Armature.001Action.001"
+			// Sand Goanna: "ArmatureAction.001"
+			// Jacky Dragon: "Armature.001Action"
+			// buffalo: "take_001"
+
+			
+			var container, stats;
+			var renderer, scene, camera, controls;
+			var pointlight;
+			
+			//marty to allow camera to follow models
+			var toptracking = false;
+			var sidetracking = false;
+			var modelcam = false;
+			var trackingtarget = null;
+			
+			// Initialise Lee Stemkoski's keyboard state functionaility
+			var keyboard = new THREEx.KeyboardState();
+			
+			
+			///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+			// !!! Some time check out if this keyboard system from jeromeetienne is better !!!
+			//  http://jeromeetienne.github.io/threex.keyboardstate/examples/basic.html
+			///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+			
+			//gargi declared gridsize and gridstep here so that they are global variables
+			var gridsize, gridstep, gridwidth;
+			
+			//gargi declared variable to store number of models
+			var numberofmodels = 9;
+			
+			//marty - declare snake as a global
+			var geometry = new THREE.CylinderGeometry(0.7, 0.7, length, 32, 100, false);
+			var material = new THREE.MeshBasicMaterial({color: 0x996666,wireframe: true});
+			var snake = new THREE.Mesh(geometry, material);
+			var sign1 = 1;
+
+			//gargi
+			var floor;
+			
+			//gargi
+			var spheresarray = [];
+			var animations = [];
+			var buffalos = [];
+			/* var offset = []; */
+			
+			var clock = new THREE.Clock();
+			var elapsedtime = 0;
+
+			//marty mouse event variables
+			var projector = new THREE.Projector(), 
+			/////mouse_vector = new THREE.Vector3(),
+			/////mouse = { x: 0, y: 0, z: 1 },
+			ray = new THREE.Raycaster( new THREE.Vector3(0,0,0), new THREE.Vector3(0,0,0) ),
+			intersects = []; 
+			var userHasClicked = false;
+
+			//gargi declared 'point of click' variables for mouse cick
+			var POC = new THREE.Vector3( 0,0,0 );
+			var PreviousPOC = new THREE.Vector3( 0,0,0 );
+			var POCchanged = false;
+
+			//15 Sep 2016 Marty - declare global variables to help with micropath
+			var Previous_Last_Micro_vertice;
+			var Previous_SecondLast_Micro_vertice;
+			var PreviousMicroVerticesSet = false;
+			// var p1x = 0;
+			// var p1y = 0;
+			// var p1z = 0;
+			var p2x = 0;
+			var p2y = 0;
+			var p2z = 0;
+
+			// gargi declared separate POI variables for each model
+			/* for( i=0; i < numberofmodels; ++i )
+				POI.push( new THREE.Vector3( 0,0,0 ));
+				for ( i=0; i < numberofmodels; ++i)
+				POIchanged.push( false ); */
+			
+			//gargi. variables for modelswitch click event
+			var flag = 0;
+			var buffalodots, buffalotemp;
+
+			init();
+			runSimulation();  //previously called function "animate()"
+
+
+
+			
+
+			function init()
+			{
+				//div element that will hold renderer
+				container = document.createElement( 'div' );
+				document.body.appendChild( container );
+
+				//renderer
+				
+				renderer = new THREE.WebGLRenderer({
+					antialias: true,
+					clearColor: 0x000000,
+					clearAlpha: 0,
+					alpha: true,
+					preserveDrawingBuffer: true 
+					/*****
+					preserveDrawingBuffer to allow screenshot
+					*****/
+				});
+				//renderer = new THREE.WebGLRenderer( { antialias: true } );  //marty added antialias
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				
+				// next three lines copied from http://jsfiddle.net/TxcTr/3/
+// 				renderer.gammaInput = true;
+// 				renderer.gammaOutput = true;
+// 				renderer.physicallyBasedShading = true;
+				
+				container.appendChild( renderer.domElement );
+				
+				//add element to top-left corner to display of Frames per second (fps) and Milliseconds per execution cycle (click to toggle)
+				stats = new Stats();
+				stats.domElement.style.position = 'absolute';
+				stats.domElement.style.top = '0px';
+				container.appendChild( stats.domElement );
+
+				//scene
+				scene = new THREE.Scene();
+				
+				//camera
+				camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 2000 );
+				camera.position.set( 0, 120, 0 );  //marty - point camera straight down
+				
+				
+				
+				// marty - add screenshot ability when user presses the "p" key.
+				// Source from Jerome Etienne: http://learningthreejs.com/blog/2011/09/03/screenshot-in-javascript/
+				THREEx.Screenshot.bindKey(renderer);
+
+				// marty - toggle full-screen display on and off when user presses specified key - currently set as "f" or "F"
+				// From: http://stemkoski.github.io/Three.js/HelloWorld.html which extends the "THREEx.FullScreen.js" to include the bind key code at the end.
+				// http://learningthreejs.com/data/THREEx/THREEx.FullScreen.js
+				THREEx.FullScreen.bindKey({ charCode : 'f'.charCodeAt(0) });
+				THREEx.FullScreen.bindKey({ charCode : 'F'.charCodeAt(0) });
+
+
+				//marty - custom mousewheel zoom
+				// source = http://stackoverflow.com/questions/10791995/javascript-trouble-detecting-mouse-wheel-event
+				if(window.addEventListener) { document.addEventListener('DOMMouseScroll', zoom_handler, false); } 
+				document.onmousewheel = zoom_handler;
+
+				
+				//gargi for camera zoom  - MARTY commented out because THREE.TrackballControls was changing the scene.position
+// 				controls = new THREE.TrackballControls( camera, renderer.domElement );
+// 				controls.rotateSpeed = 0.5;
+// 				controls.addEventListener( 'change', render );
+				
+				//event listener to change canvas size on window resize
+				window.addEventListener( 'resize', onWindowResize, false );
+
+				//marty add event listeners to track and capture mouse moves and mouseclicks
+				renderer.domElement.addEventListener( 'mousedown', onMouseDown );
+				
+				//gargi. event listener to click and switch between models
+//  *****				document.getElementById('modelSwitch').addEventListener('click', modelSwitchFunction );
+
+				//gargi for surface plane so that that black models are visible
+				var planeSimple = new THREE.PlaneGeometry( 600, 900 );  // 200, 300
+				//var matSolid = new THREE.MeshBasicMaterial( { color: 0xc0c0c0 } ); //light grey
+				//floor = new THREE.Mesh( planeSimple, matSolid );
+
+				var myTexture = THREE.ImageUtils.loadTexture( "textures/terrain/backgroundmosaic512x512.jpg" );
+//				var myTexture = THREE.ImageUtils.loadTexture( "textures/terrain/granitetile512x512.jpg" );
+//				var myTexture = THREE.ImageUtils.loadTexture( "textures/terrain/granitetexture512x512.jpg" );
+				myTexture.wrapS = myTexture.wrapT = THREE.RepeatWrapping;
+				myTexture.repeat.set( 12, 12 );
+				var matTextured = new THREE.MeshBasicMaterial( { map: myTexture } );
+				floor = new THREE.Mesh( planeSimple, matTextured );
+
+				floor.position.y = 0;  //marty changed from -10 to -20 so it doesn't obscure some parts of lizard models
+				floor.rotation.x = - Math.PI / 2;
+//				floor.scale.set( 25, 25, 25 );
+				floor.scale.set( 3, 2, 1.2 ); //marty - to match texture background to gridsize
+				scene.add( floor );
+
+			
+				//Reference grid - to provide a visual guide to help match each models velocity with the model's stride length and frequency.
+				//During animated movement each leg stride should land on the floor and stay fixed relative to the grid until the limb moves forward to the next step.
+ 			    gridwidth = 1536;  //marty - previously 580.  1536 is 3 x 512
+ 				gridsize = (gridwidth/2);
+ 				
+// 				gridstep = 10; //marty. A gridstep of 3.66 matches gridlines to the stride length of the monster model (at scale 0.002).
+// 				var geometry = new THREE.Geometry();
+// 				var material = new THREE.LineBasicMaterial( { color: 0x303030 } );
+// 				for ( var i = - gridsize; i <= gridsize; i += gridstep ) {
+// 					geometry.vertices.push( new THREE.Vector3( - gridsize, - 0.04, i ) );
+// 					geometry.vertices.push( new THREE.Vector3(   gridsize, - 0.04, i ) );
+// 					geometry.vertices.push( new THREE.Vector3( i, - 0.04, - gridsize ) );
+// 					geometry.vertices.push( new THREE.Vector3( i, - 0.04,   gridsize ) );
+// 				}
+// 				var line = new THREE.Line( geometry, material, THREE.LinePieces );
+// 				scene.add( line );
+
+				//Lights
+				scene.add( new THREE.AmbientLight( 0xcccccc ) );
+
+				var directionalLight = new THREE.DirectionalLight( /* Math.random() * 0xffffff */ 0xeeeeee );
+				directionalLight.position.x = Math.random() - 0.5;
+				directionalLight.position.y = Math.random() - 0.5;
+				directionalLight.position.z = Math.random() - 0.5;
+				directionalLight.position.normalize();
+				scene.add( directionalLight );
+
+				pointLight = new THREE.PointLight( 0xffffff, 4 );
+				/* pointLight.position = particleLight.position; */
+				scene.add( pointLight );
+
+				//marty - Display the Three.js axis helper
+				//red is x axis, green is y axis, blue is z axis.  I think only positive axes are displayed.
+				var myaxishelper = new THREE.AxisHelper( 200 );
+				scene.add( myaxishelper );
+
+				//gargi. for loading models. also made a new function createScene
+				var loader = new THREE.JSONLoader();
+				
+				/* loader.load( "models/buffalo/buffalo.js", createScene ); */
+				loader.load( Model1_JSON_file, createSceneModel1 ); //Jacky Dragon
+				
+				//Load a second type of model into the scene by calling a separate modified version of function CreateScene
+				loader.load( Model2_JSON_file, createSceneModel2 ); //Spotted Gecko
+				
+				//Load a third type of model into the scene by calling a separate modified version of function CreateScene
+				loader.load( Model3_JSON_file, createSceneModel3 ); //Water Skink
+				
+				//Load a fourth type of model into the scene by calling a separate modified version of function CreateScene
+				loader.load( Model4_JSON_file, createSceneModel4 ); //Sand Goanna
+				
+				
+				// DAT.GUI CONTROL PANEL INITIAL VALUES
+				var UserControls = function() {
+				this.JackyLizard = 0.14;
+				this.SpottedGecko = 0.11;
+				this.WaterSkink = 0.275;
+				this.SandGoanna = 0.25;
+				};
+			
+				// DISPLAY THE DAT.GUI CONTROL PANEL
+				window.onload = function() {
+				var text = new UserControls();
+				var gui = new dat.GUI();
+
+
+				parameters = 
+				{
+				JackyLizard: 0.14,
+				SpottedGecko: 0.11,
+				WaterSkink: 0.275,
+				SandGoanna: 0.25
+				};
+			
+				var folder1 = gui.addFolder('Velocity');
+			  	  
+				var JackyLizardSpeed = folder1.add( parameters, 'JackyLizard' ).min(0).max(1).listen();
+				var SpottedGeckoSpeed = folder1.add( parameters, 'SpottedGecko' ).min(0).max(1).listen();
+				var WaterSkinkSpeed = folder1.add( parameters, 'WaterSkink' ).min(0).max(1).listen();
+				var SandGoannaSpeed = folder1.add( parameters, 'SandGoanna' ).min(0).max(1).listen();
+
+				folder1.open();
+			
+				JackyLizardSpeed.onChange(function(value) 
+				{
+					for ( i = 0; i < buffalos.length; ++i )
+					{
+						if (buffalos[ i ].model_type == "Jacky Lizard")
+						{
+							buffalos[ i ].velocity = value;
+						}
+					}
+				});
+				
+				SpottedGeckoSpeed.onChange(function(value) 
+				{
+					for ( i = 0; i < buffalos.length; ++i )
+					{
+						if (buffalos[ i ].model_type == "Spotted Gecko")
+						{
+							buffalos[ i ].velocity = value;
+						}
+					}
+				});
+				
+				WaterSkinkSpeed.onChange(function(value) 
+				{
+					for ( i = 0; i < buffalos.length; ++i )
+					{
+						if (buffalos[ i ].model_type == "Water Skink")
+						{
+							buffalos[ i ].velocity = value;
+						}
+					}
+				});
+				
+				SandGoannaSpeed.onChange(function(value) 
+				{
+					for ( i = 0; i < buffalos.length; ++i )
+					{
+						if (buffalos[ i ].model_type == "Sand Goanna")
+						{
+							buffalos[ i ].velocity = value;
+						}
+					}
+				});
+					  
+			  
+			  
+//				folder1.add(text, 'JackyLizard', 0, 1);
+//				folder1.add(text, 'SpottedGecko', 0, 1);
+//				folder1.add(text, 'WaterSkink', 0, 1);
+//				folder1.add(text, 'SandGoanna', 0, 1);
+//				
+//				folder1.open();
+
+				gui.open();
+				};
+				
+
+				//=*=*=*=*=*=*=*
+				// add a cylinder snake to the scene
+
+				/* Cylinder
+				http://threejs.org/docs/#Reference/Extras.Geometries/CylinderGeometry
+
+				CylinderGeometry(radiusTop, radiusBottom, height, radiusSegments, heightSegments, openEnded, thetaStart, thetaLength)
+
+				radiusTop — Radius of the cylinder at the top. Default is 20.
+				radiusBottom — Radius of the cylinder at the bottom. Default is 20.
+				height (or length if horizontal) — Height of the cylinder. Default is 100.
+				radiusSegments — Number of segmented faces around the circumference of the cylinder. Default is 8
+				heightSegments — Number of rows of faces along the height of the cylinder. Default is 1.
+				openEnded — A Boolean indicating whether the ends of the cylinder are open or capped. Default is false, meaning capped.
+				thetaStart — Start angle for first segment, default = 0 (three o'clock position).
+				thetaLength — The central angle, often called theta, of the circular sector. The default is 2*Pi, which makes for a complete cylinder.*/
+
+				// add a cylinder to the scene
+				var length = 60;
+				var geometry = new THREE.CylinderGeometry(0.7, 0.7, length, 32, 100, false);
+
+				// shift it so one end rests on the origin
+				geometry.applyMatrix(new THREE.Matrix4().makeTranslation(0, 0 - (length / 2), 0));
+			
+
+				// raise it up so that two thirds is above x axis and one third below
+				//geometry.applyMatrix(new THREE.Matrix4().makeTranslation(-6, 0, 0));
+				// rotate it the right way for lookAt to work
+				geometry.applyMatrix(new THREE.Matrix4().makeRotationZ(THREE.Math.degToRad(-90)));
+				//geometry.applyMatrix( new THREE.Matrix4().makeRotationY( THREE.Math.degToRad( 90 ) ) );
+				/*var material = new THREE.MeshPhongMaterial({
+				  color: 0x996666,
+				  specular: 0x002200,
+				  shininess: 0,
+				  shading: THREE.FlatShading
+				});*/
+				var material = new THREE.MeshBasicMaterial({
+				  color: 0x996666,
+				  wireframe: true
+				});
+
+				// Make a mesh with the geometry and the material
+				//var snake = new THREE.Mesh(geometry, material);
+				snake = new THREE.Mesh(geometry, material);
+
+				/*// Position it where we want
+				mesh.position.copy( from.sceneObject.position );
+				// And make it point to where we want
+				mesh.lookAt( to.sceneObject.position );*/
+
+				// rotate the cylinder to the orientation I want
+				//snake.rotation.x = -Math.PI / 2;
+				//snake.rotation.y = 0;
+				//snake.rotation.z = Math.PI / 2;
+
+				// raise the cylinder a bit so that about 5/8 is above surface
+				snake.position.y = 6;
+
+				//try and place it in random position
+				if ( Math.random() <= 0.5 )
+					{
+					var randomsign = -1;
+					}
+				else
+					{
+					var randomsign = 1;
+					}
+
+				var myrandominteger = Math.floor(Math.random() * (gridsize * 0.8)) * randomsign;
+				var xstart = myrandominteger
+				var myrandominteger = Math.floor(Math.random() * (gridsize * 0.8)) * randomsign;
+				var zstart = myrandominteger
+
+				snake.position.x = xstart;
+				snake.position.z = zstart;
+
+				scene.add(snake); // add the snake to the scene				
+			}
+			
+			
+			//<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+			
+			//new function CreateScene to make models.
+			//gargi developed this function based on the function in the ThreeJS skinning example with the herd of buffalos
+			//marty added some code derived from DevMatrix's example 
+			// http://devmatrix.wordpress.com/2013/02/27/creating-skeletal-animation-in-blender-and-exporting-it-to-three-js/
+			function createSceneModel1( geometry, materials )
+			{
+				var x, y,
+					buffalo, animation;
+
+				/////var material = new THREE.MeshFaceMaterial( materials );
+				/////var originalMaterial = materials[ 0 ];
+				/////originalMaterial.skinning = true;
+				/////originalMaterial.transparent = true;
+				/////originalMaterial.alphaTest = 0.75;
+
+				THREE.AnimationHandler.add( geometry.animation );
+				
+				//for ( var i = 0; i < numberofmodels; i ++ )
+				for ( var i = 0; i < 3; i ++ )
+				{
+
+					/* buffalo = new THREE.SkinnedMesh( geometry, originalMaterial, false ); */
+                	//marty - using parameter "THREE.MeshFaceMaterial(materials)" as used in DevMatrix's example
+                	buffalo = new THREE.SkinnedMesh(geometry, new THREE.MeshFaceMaterial(materials));
+                	
+                	buffalo.scale.set( 1.4, 1.4, 1.4 );    //previously ( 0.8, 0.8, 0.8 );
+				
+					//gargi. distribute initial locations for the models evenly across the grid
+					var x = ( ( i % 3 ) - 1 ) * 60  + THREE.Math.randFloatSpread( 10 );
+					var z = ( Math.floor( i / 3 ) - 1) * 60  + THREE.Math.randFloatSpread( 10 );
+					buffalo.position.set( x, 0, z );
+					
+					buffalo.rotation.x = 0;
+					buffalo.rotation.y = 2 * Math.PI * Math.random() - ( Math.PI * 0.5 );  // Note the "- ( Math.PI * 0.5 )" is to adjust for exported model orientation by 90 degrees.
+					buffalo.rotation.z = 0;
+					
+
+					//gargi. trying collision detection by adding spheres to models
+					/*
+					var sphereGeom = new THREE.SphereGeometry((s*1.45)/0.01, 10, 10);
+					var sphere = new THREE.Mesh(sphereGeom, new THREE.MeshNormalMaterial());
+					sphere.position = buffalo.position;
+					sphere.index = i;
+				//	buffalo.add(sphere);
+				//	scene.add(sphere);
+				//	spheresarray.push(sphere);
+					*/
+					
+					//The following call to function enableSkinning is used in DevMatrix's example
+					enableSkinning(buffalo);
+
+					scene.add( buffalo );
+					buffalos.push( buffalo );
+					
+					// Just for reference...
+					// velocity = 0.267 matches spottedgecko models at scale 2.8.
+					// velocity = 0.09 matches spottedgecko models at scale 1.4.
+					// velocity = 0.2 matches Sand Goanna models at scale 1.4.
+					// velocity = 0.1 matches Jacky lizard models at scale 1.4.
+
+					//Initialise entity parameters
+					buffalos[ i ].unique_id = i+1;
+					buffalos[ i ].model_type = "Jacky Lizard"; //this will have to declared for every separate model in separate 'createScene' functions
+					buffalos[ i ].heading = buffalo.rotation.y - ( Math.PI * 0.5 );  // adjust for the orientation of the exported model.
+					buffalos[ i ].velocity = 0.14;
+					buffalos[ i ].turn_interval = 60; //seconds
+					buffalos[ i ].time_of_last_turn = 0; //seconds
+					buffalos[ i ].active = true;
+					buffalos[ i ].pause_interval = 60 + ( Math.random() * 30 ); //seconds
+					buffalos[ i ].time_of_last_pause = Math.random() * buffalos[ i ].pause_interval; //seconds
+					buffalos[ i ].pause_duration = 5 + ( Math.random() * 5 ); //seconds
+					buffalos[ i ].click_count = 0;
+					buffalos[ i ].status = null;
+					buffalos[ i ].poi_x = 0;
+					buffalos[ i ].poi_y = 0;
+					buffalos[ i ].poi_z = 0;
+					buffalos[ i ].poichanged = false;
+					
+					//Note that each model has the following additional innate parameters that can be accessed using notation "buffalos[ i ].parameter_name"
+					//  .position.x
+					//  .position.y
+					//  .position.z
+					//  .rotation.x
+					//  .rotation.y  (rotation.y is the models current heading)
+					//  .rotation.z
+					//  .scale.x
+					//  .scale.y
+					//  .scale.z
+					//  .material.materials  (array of materials)
+					//  .material.length  (number of materials in the materials array)
+
+
+					/* animation = new THREE.Animation( buffalo, "take_001" ); */
+					animation = new THREE.Animation(buffalo, Model1_Animation_title, THREE.AnimationHandler.CATMULLROM);  //CATMULLROM as used by DevMatrix
+					animations.push( animation );					
+				}
+				
+                // Animate the models.  Note: This used to be within the "runSimulation" function (which was previously called function "animate" )
+				for( var i = 0; i < animations.length; i ++ )
+					{
+						animations[ i ].play();
+					}
+			}
+
+
+			//<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+			
+			
+			function createSceneModel2( geometry, materials )
+			{
+				var x, y,
+					buffalo, animation;
+
+				THREE.AnimationHandler.add( geometry.animation );
+				
+				for ( var i = 3; i < 5; i ++ )
+				{
+
+                	buffalo = new THREE.SkinnedMesh(geometry, new THREE.MeshFaceMaterial(materials));
+                	
+                	buffalo.scale.set( 1.4, 1.4, 1.4 );    //previously ( 0.8, 0.8, 0.8 );
+				
+					//gargi. distribute initial locations for the models evenly across the grid
+					var x = ( ( i % 3 ) - 1 ) * 60  + THREE.Math.randFloatSpread( 10 );
+					var z = ( Math.floor( i / 3 ) - 1) * 60  + THREE.Math.randFloatSpread( 10 );
+					buffalo.position.set( x, 0, z );
+					
+					buffalo.rotation.x = 0;
+					buffalo.rotation.y = 2 * Math.PI * Math.random() - ( Math.PI * 0.5 );  // Note the "- ( Math.PI * 0.5 )" is to adjust for exported model orientation by 90 degrees.
+					buffalo.rotation.z = 0;
+					
+					//The following call to function enableSkinning is used in DevMatrix's example
+					enableSkinning(buffalo);
+
+					scene.add( buffalo );
+					buffalos.push( buffalo );
+					
+					//Initialise entity parameters
+					buffalos[ i ].unique_id = i+1;
+					buffalos[ i ].model_type = "Spotted Gecko"; //this will have to declared for every separate model in separate 'createScene' functions
+					buffalos[ i ].heading = buffalo.rotation.y - ( Math.PI * 0.5 );  // adjust for the orientation of the exported model.
+					buffalos[ i ].velocity = 0.11;
+					buffalos[ i ].turn_interval = 60; //seconds
+					buffalos[ i ].time_of_last_turn = 0; //seconds
+					buffalos[ i ].active = true;
+					buffalos[ i ].pause_interval = 40 + ( Math.random() * 20 ); //seconds
+					buffalos[ i ].time_of_last_pause = Math.random() * buffalos[ i ].pause_interval; //seconds
+					buffalos[ i ].pause_duration = 10 + ( Math.random() * 10 ); //seconds
+					buffalos[ i ].click_count = 0;
+					buffalos[ i ].status = null;
+					buffalos[ i ].poi_x = 0;
+					buffalos[ i ].poi_y = 0;
+					buffalos[ i ].poi_z = 0;
+					buffalos[ i ].poichanged = false;
+					
+					animation = new THREE.Animation(buffalo, Model2_Animation_title, THREE.AnimationHandler.CATMULLROM);  //CATMULLROM as used by DevMatrix
+					animations.push( animation );				
+				}
+				
+				// Animate the models
+				for( var i = 0; i < animations.length; i ++ )
+					{
+						animations[ i ].play();
+					}
+			}
+			
+
+			//<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+			
+			
+			function createSceneModel3( geometry, materials )
+			{
+				var x, y,
+					buffalo, animation;
+
+				THREE.AnimationHandler.add( geometry.animation );
+				
+				for ( var i = 5; i < 7; i ++ )
+				{
+
+                	buffalo = new THREE.SkinnedMesh(geometry, new THREE.MeshFaceMaterial(materials));
+                	
+                	buffalo.scale.set( 1.4, 1.4, 1.4 );    //previously ( 0.8, 0.8, 0.8 );
+				
+					//gargi. distribute initial locations for the models evenly across the grid
+					var x = ( ( i % 3 ) - 1 ) * 60  + THREE.Math.randFloatSpread( 10 );
+					var z = ( Math.floor( i / 3 ) - 1) * 60  + THREE.Math.randFloatSpread( 10 );
+					buffalo.position.set( x, 0, z );
+					
+					buffalo.rotation.x = 0;
+					buffalo.rotation.y = 2 * Math.PI * Math.random() - ( Math.PI * 0.5 );  // Note the "- ( Math.PI * 0.5 )" is to adjust for exported model orientation by 90 degrees.
+					buffalo.rotation.z = 0;
+										
+					//The following call to function enableSkinning is used in DevMatrix's example
+					enableSkinning(buffalo);
+
+					scene.add( buffalo );
+					buffalos.push( buffalo );
+
+					//Initialise entity parameters
+					buffalos[ i ].unique_id = i+1;
+					buffalos[ i ].model_type = "Water Skink"; //this will have to declared for every separate model in separate 'createScene' functions
+					buffalos[ i ].heading = buffalo.rotation.y - ( Math.PI * 0.5 );  // adjust for the orientation of the exported model.
+					buffalos[ i ].velocity = 0.275;
+					buffalos[ i ].turn_interval = 60; //seconds
+					buffalos[ i ].time_of_last_turn = 0; //seconds
+					buffalos[ i ].active = true;
+					buffalos[ i ].pause_interval = 120 + ( Math.random() * 60 ); //seconds
+					buffalos[ i ].time_of_last_pause = Math.random() * buffalos[ i ].pause_interval; //seconds
+					buffalos[ i ].pause_duration = 12 + ( Math.random() * 6 ); //seconds
+					buffalos[ i ].click_count = 0;
+					buffalos[ i ].status = null;
+					buffalos[ i ].poi_x = 0;
+					buffalos[ i ].poi_y = 0;
+					buffalos[ i ].poi_z = 0;
+					buffalos[ i ].poichanged = false;
+					
+					animation = new THREE.Animation(buffalo, Model3_Animation_title, THREE.AnimationHandler.CATMULLROM);  //CATMULLROM as used by DevMatrix
+					animations.push( animation );			
+				}
+				
+				// Animate the models
+				for( var i = 0; i < animations.length; i ++ )
+					{
+						animations[ i ].play();
+					}
+			}
+				
+
+			//<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+			
+			
+			function createSceneModel4( geometry, materials )
+			{
+				var x, y,
+					buffalo, animation;
+
+				THREE.AnimationHandler.add( geometry.animation );
+				
+				for ( var i = 7; i < numberofmodels; i ++ )
+				{
+
+                	buffalo = new THREE.SkinnedMesh(geometry, new THREE.MeshFaceMaterial(materials));
+                	
+                	// increase model scale for the Sand Goanna
+                	buffalo.scale.set( 1.75, 1.75, 1.75 );    //previously ( 0.8, 0.8, 0.8 );
+									
+					//gargi. distribute initial locations for the models evenly across the grid
+					var x = ( ( i % 3 ) - 1 ) * 60  + THREE.Math.randFloatSpread( 10 );
+					var z = ( Math.floor( i / 3 ) - 1) * 60  + THREE.Math.randFloatSpread( 10 );
+					buffalo.position.set( x, 0, z );
+					
+					buffalo.rotation.x = 0;
+					buffalo.rotation.y = 2 * Math.PI * Math.random() - ( Math.PI * 0.5 );  // Note the "- ( Math.PI * 0.5 )" is to adjust for exported model orientation by 90 degrees.
+					buffalo.rotation.z = 0;
+					
+					//The following call to function enableSkinning is used in DevMatrix's example
+					enableSkinning(buffalo);
+
+					scene.add( buffalo );
+					buffalos.push( buffalo );
+					
+					//Initialise entity parameters
+					buffalos[ i ].unique_id = i+1;
+					buffalos[ i ].model_type = "Sand Goanna"; //this will have to declared for every separate model in separate 'createScene' functions
+					buffalos[ i ].heading = buffalo.rotation.y - ( Math.PI * 0.5 );  // adjust for the orientation of the exported model.
+					buffalos[ i ].velocity = 0.25;
+					buffalos[ i ].turn_interval = 60; //seconds
+					buffalos[ i ].time_of_last_turn = 0; //seconds since clock started
+					buffalos[ i ].active = true;
+					buffalos[ i ].pause_interval = 60 + ( Math.random() * 30 ); //seconds
+					buffalos[ i ].time_of_last_pause = Math.random() * buffalos[ i ].pause_interval; //seconds
+					buffalos[ i ].pause_duration = 1 + ( Math.random() * 19 ); //seconds
+					buffalos[ i ].click_count = 0;
+					buffalos[ i ].status = "active";
+					buffalos[ i ].poi_x = 0;
+					buffalos[ i ].poi_y = 0;
+					buffalos[ i ].poi_z = 0;
+					buffalos[ i ].poichanged = false;
+					
+					animation = new THREE.Animation(buffalo, Model4_Animation_title, THREE.AnimationHandler.CATMULLROM);  //CATMULLROM as used by DevMatrix
+					animations.push( animation );			
+				}
+				
+				// Animate the models
+				for( var i = 0; i < animations.length; i ++ )
+					{
+						animations[ i ].play();
+					}
+			}
+
+
+			//<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>			
+			
+			
+			//marty added this new function from DevMatrix's tutorial package "Creating skeletal animation in Blender and exporting it to three.js"
+			// http://devmatrix.wordpress.com/2013/02/27/creating-skeletal-animation-in-blender-and-exporting-it-to-three-js/
+			function enableSkinning(buffalo) {
+            	// Enable the material skinning on every material in THREE.MeshFaceMaterial materials collection
+                var materials = buffalo.material.materials;
+                for (var i = 0,length = materials.length; i < length; i++) {
+                    var mat = materials[i];
+                    mat.skinning = true;
+                }
+            }
+
+			
+			
+			function runSimulation()  //previously called function "animate"
+			{
+				requestAnimationFrame( runSimulation );
+				
+				var delta = clock.getDelta();
+
+				THREE.AnimationHandler.update( delta );
+				
+				if ( buffalos )
+				{
+
+					var elapsed = clock.getElapsedTime(); //seconds elapsed since the clock started
+
+					
+/*					//The following animation.play code has been moved into function CreateScene so it doesn't get called excessively
+					for( var i = 0; i < animations.length; i ++ )
+					{
+						animations[ i ].play();
+					}
+*/
+
+					//gargi. for changing every model's POI to the point of click on mousedown
+					if ( POCchanged )
+					{
+						for ( i = 0; i < buffalos.length; ++i )
+						{
+							buffalos[ i ].poi_x = POC.x;
+							buffalos[ i ].poi_z = POC.z;
+							buffalos[ i ].poichanged = true;
+						}
+						POCchanged = false;
+						var NewPOC = true;  //Marty - new Boolean flag for testing generation of paths between mouseclicks
+					}
+					
+
+					// Move the cylinder snake
+					// start manipulating the positions of individual vertices
+					  var verts = snake.geometry.vertices;
+					  if (verts[0].x > gridsize - 1)
+					  	{
+					  		 sign1 = -1;
+					  	} 
+					  	else if (verts[0].x < (gridsize * -1) + 1) { 
+    						 sign1 = 1;
+						}
+
+					 //  if (condition1) {
+						//     block of code to be executed if condition1 is true
+						// } else if (condition2) {
+						//     block of code to be executed if the condition1 is false and condition2 is true
+						// } else {
+						//     block of code to be executed if the condition1 is false and condition2 is false
+						// }
+
+					  for (var v = 0; v < verts.length; ++v) {
+					  // adjust the snake based on the position of its vertices in world coordinates
+					    verts[v].x = verts[v].x + (0.4 * sign1)
+					    //verts[v].z = verts[v].z + 0.05
+					  }
+					  snake.geometry.verticesNeedUpdate = true;
+
+
+					//Move the models around the arena!
+					for( i = 0; i < buffalos.length; i++ )
+					{
+
+						// marty - Determine whether this model should pause based on elapsed time since last pause
+						if ( buffalos[ i ].active )
+						{
+							if ( elapsed > ( buffalos[ i ].time_of_last_pause + buffalos[ i ].pause_interval ) )
+							{
+								animations[ i ].pause();
+								buffalos[ i ].active = false;
+								buffalos[ i ].time_of_last_pause = elapsed
+								console.log( "MODEL paused: ", i );
+							}
+						}
+						else // model is already paused, so check if it is ready to start moving again.
+						{
+							if ( ( elapsed - buffalos[ i ].time_of_last_pause ) > buffalos[ i ].pause_duration )
+							{
+								animations[ i ].play();
+								buffalos[ i ].active = true;
+								console.log( "MODEL active: ", i );
+								buffalos[ i ].time_of_last_pause = elapsed; // set time of last pause to the end of the pause
+							}
+						}
+
+
+						// marty - Determine whether this model should turn based on elapsed time since last turn
+						if ( ( buffalos[ i ].active ) && ( ! buffalos[ i ].poichanged ) )
+						{
+							if ( ( elapsed - buffalos[ i ].time_of_last_turn ) > buffalos[ i ].turn_interval )
+							{
+								// Generate a new POI that is randomly located near the middle of the grid
+								if ( Math.random() <= 0.5 )
+									{
+									var randomsign = -1;
+									}
+								else
+									{
+									var randomsign = 1;
+									}
+								
+								buffalos[ i ].poi_x = (0.5 * gridsize) * Math.random() * randomsign;
+								
+								if ( Math.random() <= 0.5 )
+									{
+									var randomsign = -1;
+									}
+								else
+									{
+									var randomsign = 1;
+									}
+	
+								buffalos[ i ].poi_z = (0.5 * gridsize) * Math.random() * randomsign;
+									
+								buffalos[ i ].poichanged = true;
+								buffalos[ i ].time_of_last_turn = elapsed;
+							}
+						}
+
+
+
+						//marty - If the model steps outside the grid then make it dissapear and re-appear on the opposite side of the grid (the model keeps its heading)
+						if ( ( buffalos[ i ].position.x > gridsize ) || ( buffalos[ i ].position.x < (-1 * gridsize ) ) || ( buffalos[ i ].position.z > gridsize ) || ( buffalos[ i ].position.z < (-1 * gridsize ) ) )
+						{
+							buffalos[ i ].position.x = (-1 * buffalos[ i ].position.x);
+							buffalos[ i ].position.z = (-1 * buffalos[ i ].position.z);
+						}						
+						
+						//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+						//marty - respond to user mouseclicks, (this was also previously used to respond to new random POI generated when model got too close to edge of arena).
+						if ( ( buffalos[ i ].poichanged ) && ( buffalos[ i ].active ) )
+						{
+							
+							elapsedtime += delta;
+
+							if ( elapsedtime > 0.25 )
+							{
+								//reset to zero so that we only execute this code at 0.25 second intervals
+								elapsedtime = 0;
+								
+								//calculate the distance from the models current position to its POI
+								var x1 = buffalos[ i ].position.x
+								var x2 = buffalos[ i ].poi_x;
+								var z1 = buffalos[ i ].position.z
+								var z2 = buffalos[ i ].poi_z;
+								//var distancetopoi = Math.sqrt((x1 -= x2) * x1 + (z1 -= z2) * z1); // this line was a bug because x1 and z1 were being assigned new values.
+								var distancetopoi = Math.sqrt(((x1 - x2) * (x1 - x2)) + ((z1 - z2) * (z1 - z2)));
+							
+								//calculate the direction from the models current position to the POI
+								var deltax = x2 - x1;
+								var deltaz = z2 - z1;
+								var directiontopoi = -1 * Math.atan2 ( deltaz, deltax );
+
+								//keep directiontopoi positive within the range 0 to (2 * PI) radians
+								if ( directiontopoi > (Math.PI * 2) )
+								{	
+									directiontopoi -= (Math.PI * 2);
+								}
+								if ( directiontopoi < 0 )
+								{	
+									directiontopoi += (Math.PI * 2);
+								}
+								
+								//marty - if the next line is not commented, it makes the models turn abruptly towards the POI 
+								//buffalos[ i ].heading = directiontopoi;
+
+								//calculate the difference between the current buffalos[ i ].rotation.y and the direction to the POI
+								//take into account the problem of headings that may be close in direction but that are in different quadrants
+								//and therefore may have very different radians.  e.g. heading 0.1 is close to heading 6.2.
+								if ( buffalos[ i ].heading < directiontopoi )
+								{
+									//for small values of buffalos[ i ].rotation.y add (2 * PI) to make them numerically bigger, but still represent the same heading.
+									var headingdifference = ( buffalos[ i ].heading + (2 * Math.PI) ) - directiontopoi;
+								}
+								else
+								{
+									var headingdifference = buffalos[ i ].heading - directiontopoi;
+								}
+
+								
+								//if the absolute value of the difference is within tolerance, then stop turning (but only if the model is inside the arena)
+								var bearingtolerance = 0.2;
+								var distancetolerance = 5;								
+								
+								if ( ( Math.abs( headingdifference ) < bearingtolerance ) || ( distancetopoi < distancetolerance ) )
+								{
+									// reset the flag if distance to POI is less than specified threshold or if heading of model is on track.
+									// but only if this model is not outside the bounds of the arena grid
+									if ( ( buffalos[ i ].position.x < gridsize - 20 ) || ( buffalos[ i ].position.x > (-1 * gridsize + 20) ) || ( buffalos[ i ].position.z < gridsize - 20 ) || ( buffalos[ i ].position.z > (-1 * gridsize + 20) ) )
+									{
+										buffalos[ i ].poichanged = false;
+									}
+								}
+								else
+								{
+									//use sign2 to make sure direction of turn is optimal to get to the new poi
+									if ( headingdifference < Math.PI )
+									{
+										var sign2 = -1;
+									}
+									else
+									{
+										var sign2 = 1;
+									}
+									
+									//make the model slowly turn towards the mouseclick POI by changing heading by 0.1 radians
+									//however if the difference in headings is getting small, then make the turnamount small for each iteration
+									//so that the model doesn't over-shoot the new heading
+									if ( headingdifference < 0.35 )
+									{
+										var turnamount = 0.02;
+									}
+									else
+									{
+										var turnamount = 0.1;
+									}
+									buffalos[ i ].heading += ( turnamount * sign2 );
+									
+									//make sure heading stays within normal range (0 to 2*PI radians)
+									if ( buffalos[ i ].heading > (Math.PI * 2) )
+									{	
+										buffalos[ i ].heading -= (Math.PI * 2);
+									}
+									if ( buffalos[ i ].heading < (-1 * Math.PI * 2) )
+									{	
+										buffalos[ i ].heading += (Math.PI * 2);
+									}
+								}
+								buffalos[ i ].rotation.y = buffalos[ i ].heading + ( Math.PI * 0.5 ) // add 90 degrees adjustement for the orientation of the Blender exported models
+
+							}
+						}
+						
+						//move the models!
+						if ( buffalos[ i ].active)
+						{
+							var speed = buffalos[ i ].velocity; //controls the forward velocity of the model. 
+							buffalos[ i ].position.x += Math.cos ( buffalos[ i ].heading ) * speed;  // lizard models are OK, but for actual buffalo model adjust model orientation by - ( Math.PI * 0.5 )
+							buffalos[ i ].position.z += -Math.sin ( buffalos[ i ].heading ) * speed;  // lizard models are OK, but for actual buffalo model adjust model orientation by - ( Math.PI * 0.5 )
+						}
+
+
+						//gargi. so that the models do not move around in circles indefinitely
+						//buffalos[ i ].poichanged = false;
+						
+						
+						// marty - camera controls
+						// move the camera if user presses arrow keys or W,S,D,A keys - this code uses Lee Stemkoski's external function "THREEx.KeyboardState.js"
+						var translation = new THREE.Vector3();
+						var movecamera = false;
+						
+						if ( ( keyboard.pressed("W") ) || ( keyboard.pressed('up') ) )
+						{
+							translation.x -= (delta * 10);
+							movecamera = true;
+						}
+						if ( ( keyboard.pressed("S") ) || ( keyboard.pressed('down') ) )
+						{
+							translation.x += (delta * 10);
+							movecamera = true;
+						}
+						if ( ( keyboard.pressed("D") ) || ( keyboard.pressed('right') ) )
+						{
+							translation.z -= (delta * 10);
+							movecamera = true;
+						}
+						if ( ( keyboard.pressed("A") ) || ( keyboard.pressed('left') ) )
+						{
+							translation.z += (delta * 10);
+							movecamera = true;
+						}
+						if ( keyboard.pressed("C") ) //move camera to "Centre" position looking straight down onto coordinates 0,0
+						{
+							camera.position.set( 0, 120, 0 );  //marty - point camera straight down at origin
+							scene.position.set( 0, 0, 0 );
+							toptracking = false;
+							sidetracking = false;
+							modelcam = false;
+						}
+						if ( keyboard.pressed("T") )
+						{
+							toptracking = !toptracking; // toggle toptracking on or off
+						}
+						if ( movecamera )
+						{
+							camera.position.add(translation);
+							scene.position.add(translation);
+							movecamera = false;
+						}
+						
+						
+						if (trackingtarget == null)
+						{
+							// set up a random model to be the initial tracking target - in case the user turns on tracking before they have selected a model entity
+							// Generate a random integer between min and max
+							// Use Math.floor() because using Math.round() will give a non-uniform distribution!
+							// Math.floor(Math.random() * (max - min + 1) + min);
+							var myrandominteger = Math.floor(Math.random() * (8 - 0 + 1) + 0); // assumes 9 lizards with ID in range 0 to 8.
+							trackingtarget = myrandominteger
+						}
+
+						// marty - control whether the user wants to track one of the models
+						// typing a number once should make the camera track the model whose I.D. index matches the number that was typed
+						// typing the number again should turn off toptracking of that model.
+						// typing "H" takes the camera home and turns off toptracking
+						// typing "T" toggles toptracking on and off for all models.
+						// typing shift key turns on sidetracking (camera tracks model while viewing from the side)
+						// typing control key turns on "modelcam" in which camera is positioned above and behind the model and looks forward along the models heading.
+						// Note that the key presses don't always register the first time every time because Lee Stemkoski's keyboard detection code is not event based.
+						if ( keyboard.pressed("0") )
+						{
+							toptracking = ! toptracking;
+							trackingtarget = 0
+						}
+						if ( keyboard.pressed("1") )
+						{
+							toptracking = ! toptracking;
+							trackingtarget = 1
+						}
+						if ( keyboard.pressed("2") )
+						{
+							toptracking = ! toptracking;
+							trackingtarget = 2
+						}
+						if ( keyboard.pressed("3") )
+						{
+							toptracking = ! toptracking;
+							trackingtarget = 3
+						}
+						if ( keyboard.pressed("4") )
+						{
+							toptracking = ! toptracking;
+							trackingtarget = 4
+						}
+						if ( keyboard.pressed("5") )
+						{
+							toptracking = ! toptracking;
+							trackingtarget = 5
+						}
+						if ( keyboard.pressed("6") )
+						{
+							toptracking = ! toptracking;
+							trackingtarget = 6
+						}
+						if ( keyboard.pressed("7") )
+						{
+							toptracking = ! toptracking;
+							trackingtarget = 7
+						}
+						if ( keyboard.pressed("8") )
+						{
+							toptracking = ! toptracking;
+							trackingtarget = 8
+						}
+						if ( keyboard.pressed("9") )
+						{
+							toptracking = ! toptracking;
+							var myrandominteger = Math.floor(Math.random() * 9); // random integer between 0 and 8. Assumes there are 9 models loaded.
+							trackingtarget = myrandominteger
+						}
+						
+						// Check if shift or ctrl keys were pressed
+						if ( keyboard.pressed("shift") ) // toggle sidetracking on or off
+						{
+							sidetracking = ! sidetracking;
+							toptracking = false;
+							modelcam = false;
+						}
+						if ( keyboard.pressed("ctrl") ) // toggle modelcam on or off
+						{
+							modelcam = ! modelcam;
+							toptracking = false;
+							sidetracking = false;
+						}
+
+						// marty - if model entity toptracking is activated, make the camera follow the specified entity.
+						if ( toptracking ) // camera follows while looking down from directly overhead - user can still zoom
+						{
+							camera.position.set( buffalos[ trackingtarget ].position.x, camera.position.y, buffalos[ trackingtarget ].position.z );  //marty - point camera straight down at target
+							scene.position.set( buffalos[ trackingtarget ].position.x, 0, buffalos[ trackingtarget ].position.z );
+						}
+						if ( sidetracking ) // camera follows but always looking at the model from the side (90 degrees offset from the models heading)
+						{
+							camera.position.set( ( buffalos[ trackingtarget ].position.x + Math.cos ( ( buffalos[ trackingtarget ].heading ) + ( Math.PI * 0.5 ) ) * 50 ), camera.position.y, ( buffalos[ trackingtarget ].position.z - Math.sin ( ( buffalos[ trackingtarget ].heading ) + ( Math.PI * 0.5 ) ) * 50 ) );  //marty - point camera obliquily at target from the side
+							scene.position.set( buffalos[ trackingtarget ].position.x, 0, buffalos[ trackingtarget ].position.z );
+						}
+						if ( modelcam ) // camera follows from above and a little behond the model, looking along the path of the models heading at a point 400 units ahead.
+						{
+							camera.position.set( ( buffalos[ trackingtarget ].position.x - Math.cos ( buffalos[ trackingtarget ].heading ) * 20 ), camera.position.y, ( buffalos[ trackingtarget ].position.z + Math.sin ( buffalos[ trackingtarget ].heading ) * 20 ) );
+							scene.position.set( ( buffalos[ trackingtarget ].position.x + Math.cos ( buffalos[ trackingtarget ].heading ) * 400 ), camera.position.y, ( buffalos[ trackingtarget ].position.z - Math.sin ( buffalos[ trackingtarget ].heading ) * 400 ) );  //marty - point camera obliquily at target from the side
+						}
+						
+					}
+				}
+				
+				
+				//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+				//
+				// marty - TEST - Create a meandering snake path using spline curves between succesive mouse clicks
+				// The path will have two levels: Macro and Micro
+				//
+				// The Macro path is the general path a snake will follow to get from point A to point B
+				// It is a meandering random path between the two points, so that the snakes don't just travel on a single heading
+				// The snakes will still get to the destination point eventually, but random deviations from the straight path look more natural.
+				//
+				// The Micro path follows along the Macro path - but it defines the actual sine-wave like path that each snakes head and body will exactly follow 
+				//
+				//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+				
+						if ( NewPOC ) //POC is a "Point Of Click" with mouseclick, but in future it will be a random point in the scene
+						{
+							//turn flag off again so I only do this once per mouse click
+							NewPOC = false;  
+							
+							//Assign 5 as the y position of each click so that lines are displayed above the terrain
+							PreviousPOC.y = 5
+							POC.y = 5
+							
+							//compute a line between the new and old POCs that can be queried to get points at intervals along it
+							//This straight line won't be displayed it is kept invisible
+							var curve3 = new THREE.LineCurve3( PreviousPOC, POC );
+							
+							//- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+							// Define the "Macro" path between the two mouseclicks by adding some extra random offset points and then using a spline
+							//- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+					
+							//Generate a list of points along the line each that are PointSpacing units apart
+							var PointSpacing = 40
+							var PointInterval = curve3.getLength() * (1 / PointSpacing) // use multiply rather than dividing length by PointSpacing directly.  The points should be regularly spaced PointSpacing units apart
+							var Straightpointlist = curve3.getPoints ( PointInterval )  // Notice that I do't need to declare Straightpointlist as an array with [], even though the function returns an array.
+							
+							var Macro_vertices = [];
+
+							//15 Sep 2016: Force spline curve to start and finish exactly on the mouse clicks
+							// Here is the start
+							Macro_vertices.push ( PreviousPOC );
+
+
+							if ( Straightpointlist )
+							{
+								//for ( i = 0; i < Straightpointlist.length; ++i )
+								for ( i = 1; i < Straightpointlist.length - 1; ++i ) // first and last points are manually assigned as PreviousPOC and POC respectively
+								{
+									//Generate points that are randomly offset from the points along the straight line between the two mouseclick locations
+									// The offset points will be used to fit a snake-like spline curve
+									var offset_distance = THREE.Math.randFloat( - 30, 30 );
+									
+									//Choose a random sign3 -1 or +1
+									var sign3 = THREE.Math.randInt( 0, 1 );
+									if ( sign3 < 1 )
+										{
+										sign3 = -1
+										}
+									
+									// Compute the direction to the next point in the list
+									if ( i < Straightpointlist.length - 1 )
+										{
+										var deltax = Straightpointlist[i+1].x - Straightpointlist[i].x;
+										var deltaz = Straightpointlist[i+1].z - Straightpointlist[i].z;
+										var direction = -1 * Math.atan2 ( deltaz, deltax );
+										}
+
+									var offset_point = new THREE.Vector3( Straightpointlist[i].x + Math.cos ( direction + ( Math.PI * 0.5 ) ) * (offset_distance * sign3), Straightpointlist[i].y, Straightpointlist[i].z - Math.sin ( direction + ( Math.PI * 0.5 ) ) * (offset_distance * sign3) );
+									Macro_vertices.push (offset_point);
+									
+									//DEBUG// //DISPLAY THE OFFSET POINTS															
+									var geometry = new THREE.SphereGeometry( 2, 32, 32 );
+									var material = new THREE.MeshBasicMaterial( {color: 0x990000} );
+									var weeball = new THREE.Mesh( geometry, material );
+									weeball.position.set( Macro_vertices[i].x, Macro_vertices[i].y, Macro_vertices[i].z );
+									scene.add( weeball );
+								}
+								
+								//15 Sep 2016: Force spline curve to start and finish exactly on the mouse clicks
+								// Here is the Finish
+								Macro_vertices.push ( POC );
+								
+								var Macrocurve3 = new THREE.SplineCurve3( Macro_vertices );
+								
+								// DEBUG - Display the Macro line
+								var geometry = new THREE.Geometry();
+								geometry.vertices = Macrocurve3.getPoints( 200 );
+								var material = new THREE.LineBasicMaterial( { color : 0xFF66FF } );
+								material.linewidth = 2
+								//Create the final Object3d to add to the scene
+								var bendycurve3 = new THREE.Line( geometry, material );
+								scene.add( bendycurve3 );
+							}
+							
+
+							//- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+							// Define the "Micro" path using a spline fitted to vertices that are offset along alternating sides of the Macro path.
+							//- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+							
+							//Generate a list of points along the Macro line each PointSpacing units apart
+							var PointSpacing = 5;
+							//NOTE TO SELF: The capital letter in the middle of the getLength function used below name is needed, otherwise the compiler doesnt recognise it!!
+							var PointInterval = Macrocurve3.getLength() * (1 / PointSpacing); // use multiply rather than dividing curvelinelength by PointSpacing directly.  The points should be regularly spaced PointSpacing units apart
+							var pointlist = Macrocurve3.getPoints ( PointInterval );  // NOTE TO SELF: I don't need to declare pointlist as an array with [], even though the function returns an array.
+							
+							// DEBUG display info in console for debugging
+							//console.log( "- - - - - - - - - - - - - - - - - - - -" );
+							//console.log( "Macrocurvelength : ", Macrocurve3.getLength() );
+
+														
+							// Calculate the position of the offset points	
+							var offset_distance = 1.5;
+							var sign4 = -1;
+							var Micro_vertices = [];
+
+							//15 Sep 2016: add the previous two vertices as first two points in the array Micro_vertices
+							if ( PreviousMicroVerticesSet )
+								{
+								//Micro_vertices.push ( new THREE.Vector3( p1x, p1y, p1z) );
+								Micro_vertices.push ( new THREE.Vector3( p2x, p2y, p2z) );
+								}
+
+							if ( pointlist )
+							{
+								for ( i = 0; i < pointlist.length; ++i )
+								{
+									//Generate points that are alternatively offset from the points along the Macrocurve3 line
+									// The offset points will be used to fit a snake-like spline curve
+							
+									//toggle the sign4 each iteration
+									sign4 = sign4 * -1; 
+									
+									// Compute the direction to the next point in the list
+									if ( i < pointlist.length - 1 )
+										{
+										var deltax = pointlist[i+1].x - pointlist[i].x;
+										var deltaz = pointlist[i+1].z - pointlist[i].z;
+										var direction = -1 * Math.atan2 ( deltaz, deltax );
+										}
+									
+									//To make sure offset_point is a true Vector3 it MUST be assigned as follows...									
+									var offset_point = new THREE.Vector3( pointlist[i].x + Math.cos ( direction + ( Math.PI * 0.5 ) ) * (offset_distance * sign4), pointlist[i].y, pointlist[i].z - Math.sin ( direction + ( Math.PI * 0.5 ) ) * (offset_distance * sign4) );
+									//The Vector3 must then be added to the array using the push function, otherwise I just couldn't get it to work.
+									Micro_vertices.push (offset_point);
+
+									//An alternative way to do it is like this, in which 3 temp variables are forced to become a Vector3...
+									//var tempx = pointlist[i].x + Math.cos ( direction + ( Math.PI * 0.5 ) ) * (offset_distance * sign4);
+									//var tempy = 5 // pointlist[i].y;
+									//var tempz = pointlist[i].z - Math.sin ( direction + ( Math.PI * 0.5 ) ) * (offset_distance * sign4);
+									//Micro_vertices.push( new THREE.Vector3( tempx, tempy, tempz ) );
+																	
+									//DEBUG// //DISPLAY THE OFFSET POINTS															
+									//var geometry = new THREE.SphereGeometry( 1.2, 32, 32 );
+									//var material = new THREE.MeshBasicMaterial( {color: 0xFFFF00} );
+									//var weeball = new THREE.Mesh( geometry, material );
+									//weeball.position.set( Micro_vertices[i].x, Micro_vertices[i].y, Micro_vertices[i].z );
+									//weeball.position.set( pointlist[i].x, pointlist[i].y, pointlist[i].z );
+									//scene.add( weeball );
+
+									//16 Sep 2016 - Store the last two points as the starting point for the next path
+									// if ( i == pointlist.length - 2 )
+									// 	{
+									// 	p1x = offset_point.x;
+									// 	p1y = offset_point.y;
+									// 	p1z = offset_point.z;
+									// 	console.log( "p1x: ", p1x );
+									// 	console.log( "p1y: ", p1y );
+									// 	console.log( "p1z: ", p1z );
+									// 	}
+									if ( i == pointlist.length -1 )
+										{
+										p2x = offset_point.x;
+										p2y = offset_point.y;
+										p2z = offset_point.z;
+										PreviousMicroVerticesSet = true;
+										console.log( "p2x: ", p2x );
+										console.log( "p2y: ", p2y );
+										console.log( "p2z: ", p2z );
+										}
+								}
+	
+								var Microcurve3 = new THREE.SplineCurve3( Micro_vertices )
+								
+								var geometry = new THREE.Geometry();
+								geometry.vertices = Microcurve3.getPoints( 200 );
+								var material = new THREE.LineBasicMaterial( { color : 0x990000 } );
+								//var material = new THREE.LineBasicMaterial( { color : 0x990000, linewidth : 4 } );
+								material.linewidth = 3
+								//Create the final Object3d to add to the scene
+								var splineObject3 = new THREE.Line( geometry, material );
+								scene.add( splineObject3 );
+								
+							}
+							
+						}
+						
+				//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+				// marty - end of TEST code for testing meandering snake paths between mouseclick locations
+				//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+				
+				render();
+				stats.update();
+//				controls.update();  //marty - commented out because THREE.TrackballControls was changing the scene.position that the camera points to.
+			}
+			
+			
+			function render()
+			{
+				camera.lookAt ( scene.position );
+				renderer.render( scene, camera );
+			}
+
+
+
+			//marty - custom mousewheel zoom
+			// source = http://stackoverflow.com/questions/10791995/javascript-trouble-detecting-mouse-wheel-event
+			function zoom_handler(event) {
+			
+				var zoomdelta = 0;
+			
+				if (!event) event = window.event;
+				// normalize the zoomdelta
+				if (event.wheelDelta) {
+					// IE and Opera
+					zoomdelta = event.wheelDelta / 60;
+				} else if (event.detail) {
+					// W3C
+					zoomdelta = -event.detail / 2;
+				}
+			
+				// debug
+				// alert("ZoomDelta: " + zoomdelta);
+				
+				var zoomtranslation = new THREE.Vector3();
+				zoomtranslation.y += zoomdelta;
+				camera.position.add(zoomtranslation);
+			
+			}
+
+
+
+
+			function onMouseDown( event )
+			{
+				//stop any other event listener from recieving this event
+				event.preventDefault();
+				
+				//flag that the mouse has been clicked
+				userHasClicked = true;
+
+				//calculate the window mouse coordinates
+				var vector = new THREE.Vector3( ( event.clientX / window.innerWidth ) * 2 - 1, - ( event.clientY / window.innerHeight ) * 2 + 1, 0.5 );
+				
+				//transform the mouse cordinates to threejs 3D space coordinates
+				//with help from http://stackoverflow.com/questions/13055214/mouse-canvas-x-y-to-three-js-world-x-y-z
+				projector.unprojectVector( vector, camera );
+				
+				//marty store direction variable
+				var direction = vector.sub( camera.position ).clone().normalize();
+				
+				//gargi. capture the entities clicked on
+				//var raycaster = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
+				//marty - use direction calculated previously so its value stays intact for setting POC
+				var raycaster = new THREE.Raycaster( camera.position, direction );
+
+				var intersects = raycaster.intersectObjects( buffalos );
+				
+				if ( intersects.length > 0 )
+				// An entity has been clicked
+					for ( i = 0; i < intersects.length; ++i)
+						{
+						buffalos[ ( intersects[ 0 ].object.unique_id - 1 ) ].click_count += 1;  //increment the click count for this model entity
+						
+						
+						if ( buffalos[ intersects[ 0 ].object.unique_id - 1 ].active )
+						{
+							animations[ intersects[ 0 ].object.unique_id - 1 ].pause();
+							buffalos[ intersects[ 0 ].object.unique_id - 1 ].active = false;
+							buffalos[ intersects[ 0 ].object.unique_id - 1 ].time_of_last_pause = clock.getElapsedTime();
+						}
+						else
+						{
+							animations[ intersects[ 0 ].object.unique_id - 1 ].play();
+							buffalos[ intersects[ 0 ].object.unique_id - 1 ].active = true;
+							buffalos[ intersects[ 0 ].object.unique_id - 1 ].time_of_last_pause = clock.getElapsedTime();
+						}
+
+						// display entity parameters in the console for the model that was clicked on
+						console.log( "- - - - - - - - - - - - - - - - - - - -" );
+						console.log( "Elapsed time: ", clock.getElapsedTime() );
+						console.log( "Unique_id: ", intersects[ 0 ].object.unique_id ); //display unique_id in console when an entity is clicked. any kind of functionality can be added here
+						console.log( "model_type: ", intersects[ 0 ].object.model_type );
+						console.log( "heading: ", intersects[ 0 ].object.heading );
+						console.log( "velocity: ", intersects[ 0 ].object.velocity );
+						console.log( "turn_interval: ", intersects[ 0 ].object.turn_interval );
+						console.log( "time_of_last_turn: ", intersects[ 0 ].object.time_of_last_turn );
+						console.log( "active: ", intersects[ 0 ].object.active );
+						console.log( "pause_interval: ", intersects[ 0 ].object.pause_interval );
+						console.log( "time_of_last_pause: ", intersects[ 0 ].object.time_of_last_pause );
+						console.log( "pause_duration: ", intersects[ 0 ].object.pause_duration );
+						console.log( "click_count: ", intersects[ 0 ].object.click_count );
+						console.log( "status: ", intersects[ 0 ].object.status );
+						console.log( "poi_x: ", intersects[ 0 ].object.poi_x );
+						console.log( "poi_y: ", intersects[ 0 ].object.poi_y );
+						console.log( "poi_z: ", intersects[ 0 ].object.poi_z );
+						console.log( "poichanged: ", intersects[ 0 ].object.poichanged );
+						console.log( "position.x: ", intersects[ 0 ].object.position.x );
+						console.log( "position.y: ", intersects[ 0 ].object.position.y );
+						console.log( "position.z: ", intersects[ 0 ].object.position.z );
+						console.log( "rotation.y: ", intersects[ 0 ].object.rotation.y );
+						console.log( "scale: ", intersects[ 0 ].object.scale.x );				
+						console.log( "- - - - - - - - - - - - - - - - - - - -" );
+						}
+						
+				//marty put the code below into an else condition, so if a mouseclick doesn't hit an entity it will set a POC instead
+				else
+					{
+						//marty commented out next line and moved it up above
+						//var direction = vector.sub( camera.position ).clone().normalize();
+
+						//bring the mouseclick in the y=0 plane
+						var distance = - camera.position.y / direction.y;
+
+						//compute the position of the point in threejs 3D space, looking down the camera line of sight,
+						//through the mouse click, and on the plane y=0.
+						var position = camera.position.clone().add( direction.multiplyScalar( distance ) );
+
+						//marty debug - move model #1 to the mouseclick position - this works :-)
+						buffalos[ 0 ].position.x = position.x
+						buffalos[ 0 ].position.z = position.z
+
+						//Save the last previous POC position
+						PreviousPOC.x = POC.x;
+						PreviousPOC.y = POC.y;
+						PreviousPOC.z = POC.z;
+
+						//create a point of click for all the models to turn and head towards
+						POC.x = position.x;
+						POC.y = position.y;
+						POC.z = position.z;
+						POCchanged = true;
+						console.log("POCchanged IS NOW TRUE: POC.x = ", POC.x, "POC.z = ", POC.z);
+					}
+			}
+			
+			
+			
+			
+			
+			function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+			}
+
+
+
+
+
+/*
+			function onMouseUp( event )
+			{
+				event.preventDefault();
+			}
+
+			function onMouseMove( event )
+			{
+				//stop any other event listener from recieving this event
+				event.preventDefault();
+			}
+*/
+
+
+
+		</script>
+	</body>
+</html>
